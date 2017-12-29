@@ -1,0 +1,5 @@
+%% 	Declaracion de datos de lineas pre-falla
+%%	barrai	barraj		R			X			Bx2			B/2			TAP
+	1		2			0.01		0.012		0.176		0.088		1
+	1		2			0.01		0.012		0.0176		0.088		1
+	2		2			0			-1.5		0			0			1

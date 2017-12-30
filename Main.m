@@ -5,6 +5,7 @@ clc, clear, close all;
 
 Vb = 115;
 Sb = 100;
+fb = 60;
 
 tic
 
@@ -31,4 +32,35 @@ end
 [V0, theta0, Pgen0, Qgen0, Pneta0, Qneta0, Sshunt0, Pflow0, Pflow_bus0, ...
 Qflow0, Qflow_bus0, Ploss0, Qloss0, Pload0, Qload0] = FDC(BUSDATA, LINEDATA, G, B, g, b, n, nl);
 
-PrintFDC;
+PrintFDC(V0, theta0, Pgen0, Qgen0, Pload0, Qload0, Ploss0, Qloss0, Pneta0, Qneta0, Sshunt0, n);
+
+%% Control de frecuencia
+tipo = input('Ingrese tipo de perturbacion (1 = cambio en carga, 2 = cambio en generacion, 3 = salida de linea): ');
+if tipo == 1 || tipo == 2
+    barra = input('Ingrese la barra donde ocurre la perturbacion: ');
+    dP = input('Ingrese el cambio en potencia (en p.u): ');
+    
+    BUSDATA2 = BUSDATA;
+    if tipo == 1
+        BUSDATA2(barra, 5) = BUSDATA2(barra, 5) + dP;
+    else
+        BUSDATA2(barra, 7) = BUSDATA2(barra, 7) + dP;
+    end
+    
+    Beq = sum(1./R);
+    
+    
+    %%  Ejecucion del FDC
+    [Vn, thetan, Pgenn, Qgenn, Pnetan, Qnetan, Sshuntn, Pflown, Pflow_busn, ...
+    Qflown, Qflow_busn, Plossn, Qlossn, Ploadn, Qloadn] = FDC(BUSDATA2, LINEDATA, G, B, g, b, n, nl);
+
+    PrintFDC(Vn, thetan, Pgenn, Qgenn, Ploadn, Qloadn, Plossn, Qlossn, Pnetan, Qnetan, Sshuntn, n);
+    
+    df = -dP/Beq *fb
+    fn = fb + df
+else
+    barrai = input('Ingrese la barra de partida de la linea: ');
+    barraj = input('Ingrese la barra de llegada de la linea: ');
+end
+
+

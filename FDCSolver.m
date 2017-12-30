@@ -1,4 +1,4 @@
-function F = FDCSolver(x, LINEDATA, bustype, V, th, FP, Pload, Qload, Pconsig, Qconsig, G, B, g, b, Pdesbalance, n, nl)
+function F = FDCSolver(x, LINEDATA, bustype, refang, V, th, FP, Pload, Qload, Pconsig, Qconsig, G, B, g, b, Pdesbalance, n, nl)
     
     Pflow = zeros(n,n);
     Qflow = zeros(n,n);
@@ -15,25 +15,57 @@ function F = FDCSolver(x, LINEDATA, bustype, V, th, FP, Pload, Qload, Pconsig, Q
     Qshunt = zeros(n, 1);
     
     %% Primero vamos a calcular los flujos de potencia para cada barra (Lo que sale/entra por las lineas)
+    
+    v = 1;
+    
     for i = 1:n
         Vi = V(i);
         thi = th(i);
         
-        if bustype(i) == 2                 
-            thi = x(2*i-1);                  % En barra PV el angulo varia
+        if bustype(i) == 1
+            v = v + 2;
+            if refang(i) == 0
+                thi = x(v);
+                v = v + 1;
+            end
+        elseif bustype(i) == 2
+            if refang(i) == 0
+                thi = x(v);                  % En barra PV el angulo varia (si no es ref ang)
+                v = v + 1;
+            end
+            v = v + 1;                   % se suma 2 debido a que luego del angulo, viene la variable Q
         elseif bustype(i) == 0
-            thi = x(2*i-1);                  % En barra PQ el angulo varia
-            Vi = x(2*i);                    % En barra PQ el voltaje varia
+            if refang(i) == 0
+                thi = x(v);                  % En barra PQ el angulo varia (si no es ref ang)
+                v = v + 1;
+            end
+            Vi = x(v);                    % En barra PQ el voltaje varia
+            v = v + 1;
         end
         
+        v2 = 1;
         for k = 1:n
             Vk = V(k);
             thk = th(k);
-            if bustype(k) == 2             
-                thk = x(2*k-1);              % En barra PV el angulo varia
+            if bustype(k) == 1
+                v2 = v2 + 2;
+                if refang(k) == 0
+                    thk = x(v2);
+                    v2 = v2 + 1;
+                end
+            elseif bustype(k) == 2
+                if refang(k) == 0
+                    thk = x(v2);              % En barra PV el angulo varia (si no es ref ang)
+                    v2 = v2 + 1;
+                end
+                v2 = v2 + 1;              % se suma 2 debido a que luego del angulo, viene la variable Q
             elseif bustype(k) == 0
-                thk = x(2*k-1);              % En barra PQ el angulo varia
-                Vk = x(2*k);                % En barra PQ el voltaje varia
+                if refang(k) == 0
+                    thk = x(v2);              % En barra PQ el angulo varia (si no es ref ang)
+                    v2 = v2 + 1;
+                end
+                Vk = x(v2);                % En barra PQ el voltaje varia
+                v2 = v2 + 1;
             end
             
             if i ~= k
@@ -103,16 +135,25 @@ function F = FDCSolver(x, LINEDATA, bustype, V, th, FP, Pload, Qload, Pconsig, Q
         % Si la barra es PQ
             % d
             % V
+    v = 1;
     for i = 1:n
         Pgi = Pconsig(i);                 % Potencia activa generada, declarada como consigna
         Qgi = Qconsig(i);                 % Potencia reactiva generada, declarada como consigna
         if bustype(i) == 1
-            Pgi = x(2*i-1);
-            Qgi = x(2*i);
+            Pgi = x(v);
+            Qgi = x(v + 1);
+            v = v + 2;
+            if refang(i) == 0
+                v = v + 1;
+            end
         elseif bustype(i) == 2
             % Si la barra es PV se altera la consigna automaticamente 
             Pgi = Pgi + FP(i)*Ploss_tot - FP(i)*Pdesbalance;
-            Qgi = x(2*i);
+            if refang(i) == 0
+                v = v + 1;
+            end
+            Qgi = x(v);
+            v = v + 1;
         end
         
         %% Las ecuaciones de P y Q vendran de la siguiente forma

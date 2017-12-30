@@ -32,8 +32,8 @@ function [V, th, Pgen, Qgen, Pneta, Qneta, Sshunt, Pflow, Pflow_bus, Qflow, Qflo
     Sshunt = zeros(n, 1);
     
     bustype = zeros(n, 1);
-
-    X0 = zeros(2*n, 1);
+    refang = zeros(n, 1);
+    
     for i = 1:n 
 
         %% Se crean variables que seran de utilidad durante el flujo de carga
@@ -55,6 +55,8 @@ function [V, th, Pgen, Qgen, Pneta, Qneta, Sshunt, Pflow, Pflow_bus, Qflow, Qflo
         %% Factor de distribucion
         FP(i) = BUSDATA(i, 9);
 
+        refang(i) = BUSDATA(i, 12);
+        
         Pneta(i) = Pconsig(i)-Pload(i);
         Qneta(i) = Qconsig(i)-Qload(i);
     end
@@ -64,35 +66,64 @@ function [V, th, Pgen, Qgen, Pneta, Qneta, Sshunt, Pflow, Pflow_bus, Qflow, Qflo
     V = Vabs;
     th = theta;
 
+    X0 = zeros(2*n, 1);     % Siempre habra un total de 2*n incognitas en el sistema, sin importar que barra sea la referencia angular
+    v = 1;
     for i = 1:n
-        if bustype(i) == 1 % incognitas: P y Q
-            X0(2*i-1) = Pconsig(i);
-            X0(2*i) = Qconsig(i);
+        if bustype(i) == 1 % incognitas: P, Q y theta (si no es ref ang)
+            X0(v) = Pconsig(i);
+            X0(v + 1) = Qconsig(i);
+            v = v + 2;
+            if refang(i) == 0 % no es ref ang
+                X0(v) = th(i);
+                v = v + 1;
+            end
         elseif bustype(i) == 2 % incognitas: delta y Q
-            X0(2*i-1) = th(i);
-            X0(2*i) = Qconsig(i);
+            if refang(i) == 0 % no es ref ang
+                X0(v) = th(i);
+                v = v + 1;
+            end
+            X0(v) = Qconsig(i);
+            v = v + 1;
         elseif bustype(i) == 0 %incognitas: V y delta
-            X0(2*i-1) = th(i);
-            X0(2*i) = V(i);
+            if refang(i) == 0 % no es ref ang
+                X0(v) = th(i);
+                v = v + 1;
+            end
+            X0(v) = V(i);
+            v = v + 1;
         end
     end
 
     %% Ejecucion del fsolve (iteraciones)
     options = optimset('Display','off');
     
-    X = fsolve(@(x)FDCSolver(x, LINEDATA, bustype, V, th, FP, Pload, Qload, Pconsig, Qconsig, G, B, g, b, Pdesbalance, n, nl), X0, options);
-
+    [x,~,exitflag] = fsolve(@(x)FDCSolver(x, LINEDATA, bustype, refang, V, th, FP, Pload, Qload, Pconsig, Qconsig, G, B, g, b, Pdesbalance, n, nl), X0, options);
+    x
     %% Una vez terminadas las iteraciones, se obtienen las variables de salida y se recalculan potencias
+    v = 1;
     for i = 1:n
-        if bustype(i) == 1 % incognitas: P y Q
-            Pgen(i) = X(2*i-1);
-            Qgen(i) = X(2*i);
-        elseif bustype(i) == 2 % incognitas: delta y Q
-            th(i) = X(2*i-1);
-            Qgen(i) = X(2*i);
-        elseif bustype(i) == 0 %incognitas: V y delta
-            th(i) = X(2*i-1);
-            V(i) = X(2*i);
+        if bustype(i) == 1 % incognitas: P, Q y delta (si no es ref ang)
+            Pgen(i) = x(v);
+            Qgen(i) = x(v + 1);
+            v = v + 2;
+            if refang(i) == 0
+                th(i) = x(v);
+                v = v + 1;
+            end
+        elseif bustype(i) == 2 % incognitas: delta(si no es ref ang) y Q
+            if refang(i) == 0
+                th(i) = x(v);
+                v = v + 1;
+            end
+            Qgen(i) = x(v);
+            v = v + 1;
+        elseif bustype(i) == 0 %incognitas: V y delta(si no es ref ang)
+            if refang(i) == 0
+                th(i) = x(v);
+                v = v + 1;
+            end
+            V(i) = x(v);
+            v = v + 1;
         end
     end
 

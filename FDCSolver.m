@@ -1,4 +1,4 @@
-function F = FDCSolver(x, LINEDATA, bustype, refang, V, th, FP, Pload, Qload, Pconsig, Qconsig, G, B, g, b, Pdesbalance, n, nl)
+function F = FDCSolver(x, LINEDATA, bustype, refang, V, th, Pload, Qload, Pconsig, Qconsig, G, B, g, b, Pdesbalance, n, nl)
     
     Pflow = zeros(n,n);
     Qflow = zeros(n,n);
@@ -148,7 +148,7 @@ function F = FDCSolver(x, LINEDATA, bustype, refang, V, th, FP, Pload, Qload, Pc
             end
         elseif bustype(i) == 2
             % Si la barra es PV se altera la consigna automaticamente 
-            Pgi = Pgi + FP(i)*Ploss_tot - FP(i)*Pdesbalance;
+%             Pgi = Pgi + FP(i)*Ploss_tot - FP(i)*Pdesbalance;
             if refang(i) == 0
                 v = v + 1;
             end
@@ -165,7 +165,8 @@ function F = FDCSolver(x, LINEDATA, bustype, refang, V, th, FP, Pload, Qload, Pc
             % Q
 
         if bustype(i) == 1
-            F(2*i-1) = Pgi - Pconsig(i) - abs(Pload(i)) - FP(i)*Ploss_tot + FP(i)*Pdesbalance;
+%             F(2*i-1) = Pgi - Pconsig(i) - abs(Pload(i)) - FP(i)*Ploss_tot + FP(i)*Pdesbalance;
+            F(2*i-1) = Pgi - Pconsig(i) - abs(Pload(i)) - Ploss_tot + Pdesbalance;
         else
             F(2*i-1) = Pgi - abs(Pload(i)) - Pflow_bus(i);
         end

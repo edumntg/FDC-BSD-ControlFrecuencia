@@ -7,7 +7,6 @@ function [V, th, Pgen, Qgen, Pneta, Qneta, Sshunt, Pflow, Pflow_bus, Qflow, Qflo
     Qneta = zeros(n, 1);                            % Potencia reactiva neta de cada barra
     theta = zeros(n, 1);                            % Angulo del voltaje de cada barra (especificado)
     Vabs = zeros(n, 1);                             % Voltaje de cada barra (especificado)
-    FP = zeros(n, 1);                               % Factor de pasticipacion de cada barra
 
     Pgen = zeros(n, 1);
     Qgen = zeros(n, 1);
@@ -51,10 +50,7 @@ function [V, th, Pgen, Qgen, Pneta, Qneta, Sshunt, Pflow, Pflow_bus, Qflow, Qflo
         
         Pconsig(i) = BUSDATA(i, 7);
         Qconsig(i) = BUSDATA(i, 8);
-
-        %% Factor de distribucion
-        FP(i) = BUSDATA(i, 9);
-
+        
         refang(i) = BUSDATA(i, 12);
         
         Pneta(i) = Pconsig(i)-Pload(i);
@@ -97,7 +93,8 @@ function [V, th, Pgen, Qgen, Pneta, Qneta, Sshunt, Pflow, Pflow_bus, Qflow, Qflo
     %% Ejecucion del fsolve (iteraciones)
     options = optimset('Display','off');
     
-    [x,~,exitflag] = fsolve(@(x)FDCSolver(x, LINEDATA, bustype, refang, V, th, FP, Pload, Qload, Pconsig, Qconsig, G, B, g, b, Pdesbalance, n, nl), X0, options);
+    [x,~,exitflag] = fsolve(@(x)FDCSolver(x, LINEDATA, bustype, refang, V, th, Pload, Qload, Pconsig, Qconsig, G, B, g, b, Pdesbalance, n, nl), X0, options);
+    exitflag
     x
     %% Una vez terminadas las iteraciones, se obtienen las variables de salida y se recalculan potencias
     v = 1;
@@ -166,14 +163,14 @@ function [V, th, Pgen, Qgen, Pneta, Qneta, Sshunt, Pflow, Pflow_bus, Qflow, Qflo
         end
     end
 
-    for i = 1:n
-        Pgen(i) = 0;
-        Qgen(i) = 0;
-        if bustype(i) ~= 0  % no es PQ
-            Pgen(i) = abs(Pload(i)) + Pflow_bus(i);
-            Qgen(i) = abs(Qload(i)) + Qflow_bus(i) + imag(Sshunt(i));
-        end
-    end
+%     for i = 1:n
+%         Pgen(i) = 0;
+%         Qgen(i) = 0;
+%         if bustype(i) ~= 0  % no es PQ
+%             Pgen(i) = abs(Pload(i)) + Pflow_bus(i);
+%             Qgen(i) = abs(Qload(i)) + Qflow_bus(i) + imag(Sshunt(i));
+%         end
+%     end
 
     for i = 1:n
         Pneta(i) = Pgen(i) - abs(Pload(i));

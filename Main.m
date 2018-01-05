@@ -9,7 +9,7 @@ fb = 60;
 
 tic
 
-[BUSDATA, LINEDATA] = LoadData('BUSDATA_2barras.dat', 'RAMAS_2barras.dat');
+[BUSDATA, LINEDATA] = LoadData('BUSDATA_3barras.dat', 'RAMAS_3barras.dat');
 
 n = size(BUSDATA, 1);           % el numero de filas en el archivo excel es igual al numero de barras
 nl = size(LINEDATA, 1);         % el numero de filas en el archivo excel es igual al numero de ramas
